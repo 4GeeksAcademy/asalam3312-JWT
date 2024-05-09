@@ -25,23 +25,24 @@ def handle_hello():
     return jsonify(response_body), 200
 
 
-@api.route('/signup', methods=['POST'])
+@api.route('/signup', methods=['POST'])     # password user hola_mundo: 123456789
 def post_new_user():
     try:
-        email = request.json.get('email'),
-        username = request.json.get('username'),
-        pasword = request.json.get('pasword')
+        email = request.json.get('email')
+        username = request.json.get('username')
+        password = request.json.get('password')
 
-        if not email or not username or not pasword:
-            return jsonify({"msg": "username, email and  pasword are required"}), 400
+        if not email or not username or not password:
+            return jsonify({"msg": "username, email and  password are required"}), 400
         
         existing_username = User.query.filter_by(email = email).first()
         if existing_username:
             return jsonify({"error": "The user already exists."}), 409
         
-        pasword_hash = bcrypt.generate_pasword_hash(pasword).decode('utf-8')
+        password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+        
 
-        new_user = User(username=username, pasword=pasword_hash, email=email)
+        new_user = User(username=username, password=password_hash, email=email, is_active=True)
 
         db.session.add(new_user)
         db.session.commit()
@@ -55,3 +56,33 @@ def post_new_user():
         return jsonify({"msg": "user created successfully.", 'user_created': ok_to_share}), 201
     except Exception as e:
         return jsonify({"error": "Error in user creation"+ str(e)}),500
+    
+@api.route('/login', methods=['GET'])
+def get_users():
+    try: 
+        users = User.query.all()
+        see_users = []
+        for user in users:
+            see_users.append(user.serialize())
+        
+        if not see_users:
+            return jsonify({"msg": "there are no users for now"}), 200 
+        
+        return jsonify(see_users), 200
+        
+    except Exception as e:
+        return jsonify({"Error" + str(e)})
+    
+
+@api.route('/login/<int:id>', methods=['get'])
+def user_login(id):
+    try:
+        user = User.query.get(id)       # hago un pedido a User para que obtenga un id especifico, no es necesario el doble bucleado
+
+        if not user:
+            return jsonify({"msg", "user not found"}), 404      
+        
+        return jsonify(user.serialize()), 200       
+    
+    except Exception as e:
+        return jsonify({"Error" + str(e)})
